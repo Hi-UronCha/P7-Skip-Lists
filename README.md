@@ -22,7 +22,27 @@ Documentation: Chapter 1 (1 pt.), Chapter 2 (2 pts.), and finally a complete rep
 3.  **内存管理**：删除节点时，先 `free(node->forward)` 再 `free(node)`，防止内存泄漏。
 4.  **随机化**：使用 `rand()` 前必须在 main 中调用一次 `srand(time(0))`。
 
----
+结构体案例
+```c
+// 定义你的自定义数据结构（例如学生信息）
+typedef struct {
+    int id;             // 比如学号
+    char name[32];      // 名字
+    double score;       // 分数
+} ElementType;
+
+// 定义 Key 的类型（通常还是 int 或 long，用于排序）
+typedef int KeyType;
+
+//Node 结构体
+typedef struct Node {
+    KeyType key;                // 用于比较、排序、搜索
+    ElementType value;          // 这里存实际的“自定义元素”
+    int level;
+    struct Node **forward;
+} Node;
+
+```
 
 ### 二、 三人分工 (针对 Rubric 优化)
 
@@ -75,4 +95,5 @@ Documentation: Chapter 1 (1 pt.), Chapter 2 (2 pts.), and finally a complete rep
     *   检查封面、目录。
     *   检查代码能否在标准 C 环境编译。
     *   打包提交。
+
 
