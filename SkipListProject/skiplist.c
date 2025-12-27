@@ -1,9 +1,9 @@
 #include "skiplist.h"
 
-//�����ڵ� 
+//创建节点 
 Node* createNode(KeyType key, ElementType value, int level) {
-    Node *node = (Node *)malloc(sizeof(Node));//���ڵ������ڴ� 
-   //��ֵ 
+    Node *node = (Node *)malloc(sizeof(Node));//给节点申请内存 
+   //赋值 
     node->key = key;
     node->value = value;
     node->level = level;
@@ -12,60 +12,61 @@ Node* createNode(KeyType key, ElementType value, int level) {
     return node;
 }
 
-//��ʼ������ 
+//初始化跳表 
+// 注意main函数中需要调用srand((unsigned)time(NULL))初始化随机种子
 SkipList* createSkipList() {
-	//����洢�ռ丳��ֵ 
+	//申请存储空间赋初值 
     SkipList *list = (SkipList *)malloc(sizeof(SkipList));
     list->level = 0;
     list->size = 0;
-    //��������ͷ�ڵ�ȷ���ýڵ������(��ֵ��С��level���) 
+    //建立虚拟头节点确保该节点在最顶层(键值最小，level最高) 
     ElementType dummy = {0}; 
     list->header = createNode(INT_MIN, dummy, MAX_LEVEL);
     return list;
 }
 
-//�㷨���ģ���������㷨ά�������Ľṹ
-//�����������е�h��ڵ�����Ϊn/2^h�����õ���Ϊ��h�������ĸ���Ϊ0.5^h 
+//算法核心：利用随机算法维护跳表的结构
+//在理想跳表中第h层节点数量为n/2^h，即该点作为第h层索引的概率为0.5^h 
 int randomLevel() {
     int lvl = 0;
-    //���Ӳ�ε����������С�������+�����С�ڼȶ����ʣ����µĸ���ΪP 
+    //增加层次的条件：层次小于最大层次+随机数小于既定概率（更新的概率为P 
     while ((float)rand() / RAND_MAX < P && lvl < MAX_LEVEL - 1) {
         lvl++;
     }
     return lvl;
 }
 
-//�ͷ��ڴ� 
+//释放内存 
 void freeSkipList(SkipList *list) {
     Node *current = list->header;
-    //����ͷ� 
+    //逐层释放 
     while (current != NULL) { 
-    	//��¼��һ���ָ�� 
+    	//记录下一层的指针 
         Node *next = current->forward[0];
         free(current->forward);
         free(current);
-        current = next;//����ѭ������ 
+        current = next;//更新循环变量 
     }
     free(list);
 }
 
-//ʵ�ֲ��� 
+//实现查找 
 Node* search(SkipList *list, KeyType key) {
     Node *x = list->header;
-    //���ѭ�� ���Ӷ��㵽�ײ� 
+    //外层循环 ：从顶层到底层 
     for (int i = list->level; i >= 0; i--) {
-    	//�ڲ�ѭ���ڲ��ڲ������²��ߵĽڵ� 
+    	//内层循环在层内查找往下层走的节点 
         while (x->forward[i] != NULL && x->forward[i]->key < key) {
             x = x->forward[i];
         }
     }
-    //xΪ�����ϵ�Ŀ��ڵ㣬����ֵ�������ʾ������ 
+    //x为理论上的目标节点，若键值不等则表示不存在 
     x = x->forward[0];
     if (x != NULL && x->key == key) return x;
     return NULL;
 }
 
-//ʵ�ֲ��� 
+//实现插入 
 int insert(SkipList *list, KeyType key, ElementType value) {
     Node *update[MAX_LEVEL];
     Node *x = list->header;
@@ -96,42 +97,42 @@ int insert(SkipList *list, KeyType key, ElementType value) {
     return 1;
 }
 
-//ʵ��ɾ�����÷���ֵ��ʾ�Ƿ���ڸü�ֵ�� 
+//实现删除（用返回值表示是否存在该键值） 
 int deleteNode(SkipList *list, KeyType key) {
-    Node *update[MAX_LEVEL];	//���ǰ���ڵ� 
+    Node *update[MAX_LEVEL];	//存放前驱节点 
     Node *x = list->header;
-    //�ҵ��ýڵ㲢��¼�����о����������ڵ� 
+    //找到该节点并记录过程中经过的其他节点 
     for (int i = list->level; i >= 0; i--) {
         while (x->forward[i] != NULL && x->forward[i]->key < key) {
             x = x->forward[i];
         }
         update[i] = x;
     }
-    x = x->forward[0];	 //�����ϵ�Ŀ��ڵ� 
-    //���ȷʵ�ҵ��ˣ� 
+    x = x->forward[0];	 //理论上的目标节点 
+    //如果确实找到了： 
     if (x != NULL && x->key == key) {
-    	//���ɾ�� 
+    	//逐层删除 
         for (int i = 0; i <= list->level; i++) {
-        	//���ǰ���ڵ�û��ָ��x�����ʾ�Ѿ�ɾ�� 
+        	//如果前驱节点没有指向x，则表示已经删完 
             if (update[i]->forward[i] != x) break;
-            //�������ϼ���ɾ�� 
+            //否则向上继续删除 
             update[i]->forward[i] = x->forward[i];
         }
-        //�ͷ��ڴ� 
+        //释放内存 
         free(x->forward);
         free(x);
-        //������㱻ɾ������¸߶� 
+        //如果顶层被删除则更新高度 
         while (list->level > 0 && list->header->forward[list->level] == NULL) {
             list->level--;
         }
-        //�ɹ�ɾ���ڵ�����С 
+        //成功删除节点数减小 
         list->size--;
         return 1;
     }
     return 0;
 }
 
-//����������� 
+//输出辅助函数 
 void printSkipList(SkipList *list) {
     for (int i = list->level; i >= 0; i--) {
         Node *x = list->header->forward[i];

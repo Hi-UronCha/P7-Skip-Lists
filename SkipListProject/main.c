@@ -3,7 +3,7 @@
 #include "skiplist.h"
 
 int main() {
-    srand((unsigned)time(NULL)); // ³õÊ¼»¯Ëæ»úÖÖ×Ó
+    srand((unsigned)time(NULL)); // åˆå§‹åŒ–éšæœºç§å­
     
     SkipList *list = createSkipList();
     char command[10];

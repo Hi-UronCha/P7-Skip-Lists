@@ -7,32 +7,32 @@
 #include <time.h>
 #include <limits.h>
 
-#define MAX_LEVEL 16    // skiplistµÄ×î´ó²ãÊı 
-#define P 0.5           // Ã¿Á½²ãÖ®¼äÒÔ²åÈëÔªËØ½¨Á¢ĞÂË÷ÒıµÄ¸ÅÂÊ
-						//Ö»ÓĞÔÚµÚn²ã½¨Á¢ÁËĞÂË÷Òı£¬¸Ã¸ÅÂÊ²Å»á×÷ÓÃµ½µÚnµ½n+1²ãÖ®¼ä 
+#define MAX_LEVEL 16    // skiplistçš„æœ€å¤§å±‚æ•° 
+#define P 0.5           // æ¯ä¸¤å±‚ä¹‹é—´ä»¥æ’å…¥å…ƒç´ å»ºç«‹æ–°ç´¢å¼•çš„æ¦‚ç‡
+						//åªæœ‰åœ¨ç¬¬nå±‚å»ºç«‹äº†æ–°ç´¢å¼•ï¼Œè¯¥æ¦‚ç‡æ‰ä¼šä½œç”¨åˆ°ç¬¬nåˆ°n+1å±‚ä¹‹é—´ 
 
-// ×Ô¶¨Òå½á¹¹Ìå
-//Îª·½±ã²âÊÔ´Ë´¦²ÉÓÃ¼òµ¥µÄ½á¹¹Ìå£¬ÓÉÓÚÌø±í²»Ö±½Ó²Ù×÷½á¹¹ÌåËùÒÔ½á¹¹Ìå´óĞ¡²»»áÓ°ÏìĞ§ÂÊ 
+// è‡ªå®šä¹‰ç»“æ„ä½“
+//ä¸ºæ–¹ä¾¿æµ‹è¯•æ­¤å¤„é‡‡ç”¨ç®€å•çš„ç»“æ„ä½“ï¼Œç”±äºè·³è¡¨ä¸ç›´æ¥æ“ä½œç»“æ„ä½“æ‰€ä»¥ç»“æ„ä½“å¤§å°ä¸ä¼šå½±å“æ•ˆç‡ 
 typedef struct {
     int data; 
 } ElementType;
 
 typedef int KeyType;
-//´Ó½Úµã¶àµÄµ½ÉÙµÄ²ã¸ß¶ÈÒÀ´ÎÔö¼Ó£¬×îµ×²ãÎªµÚ0²ã 
+//ä»èŠ‚ç‚¹å¤šçš„åˆ°å°‘çš„å±‚é«˜åº¦ä¾æ¬¡å¢åŠ ï¼Œæœ€åº•å±‚ä¸ºç¬¬0å±‚ 
 typedef struct Node{
-    KeyType key;	//ÓÃÓÚÅÅĞòµÄ¼üÖµ 
-    ElementType value;		//½ÚµãÖĞ´æ´¢µÄÊı¾İ 
-    int level;		//¸Ã½ÚµãµÄ¸ß¶È 
-    struct Node **forward;	//´æ·ÅµÚ 
+    KeyType key;	//ç”¨äºæ’åºçš„é”®å€¼ 
+    ElementType value;		//èŠ‚ç‚¹ä¸­å­˜å‚¨çš„æ•°æ® 
+    int level;		//è¯¥èŠ‚ç‚¹çš„é«˜åº¦ 
+    struct Node **forward;	//å­˜æ”¾ç¬¬ 
 }Node;
 
 typedef struct SkipList {
-    Node *header;	//ĞéÄâÍ·½Úµã 
-    int level;		//Ìø±íµÄ×Ü¸ß¶È 
-    int size;		//Ìø±íÖĞµÄ½Úµã¸öÊı 
+    Node *header;	//è™šæ‹Ÿå¤´èŠ‚ç‚¹ 
+    int level;		//è·³è¡¨çš„æ€»é«˜åº¦ 
+    int size;		//è·³è¡¨ä¸­çš„èŠ‚ç‚¹ä¸ªæ•° 
 } SkipList;
 
-// º¯ÊıÉùÃ÷
+// å‡½æ•°å£°æ˜
 SkipList* createSkipList();
 void freeSkipList(SkipList *list);
 int insert(SkipList *list, KeyType key, ElementType value);
