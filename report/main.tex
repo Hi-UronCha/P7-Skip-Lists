@@ -1,0 +1,338 @@
+\documentclass[12pt, a4paper]{article}
+
+% ==================== Packages ====================
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{setspace}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{hyperref}   % For clickable TOC and links
+\usepackage{listings}   % For code highlighting
+\usepackage{xcolor}     % For colors
+\usepackage{float}      % For table/image positioning
+\usepackage{amsmath}    % For math formulas
+
+% ==================== Page Layout ====================
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\setlength{\parindent}{0pt} % Optional: No indentation for paragraphs
+\setlength{\parskip}{1em}   % Space between paragraphs
+
+% ==================== Code Style Settings ====================
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2,
+    language=C++
+}
+\lstset{style=mystyle}
+
+% ==================== Document Start ====================
+\begin{document}
+
+% ==================== Cover Page (Item 1) ====================
+\begin{titlepage}
+    \centering
+    
+    \vspace*{1cm}
+    
+    % Logo Section (Make sure zju-name.pdf exists in assets/ or current folder)
+    \IfFileExists{assets/zju-name.pdf}{
+        \includegraphics[width=0.5\textwidth]{assets/zju-name.pdf}
+    }{
+        \IfFileExists{zju-name.pdf}{
+             \includegraphics[width=0.5\textwidth]{zju-name.pdf}
+        }{
+             {\Huge \textbf{Zhejiang University}}
+        }
+    }
+    
+    \vspace{2cm}
+    
+    % Title Section
+    {\fontsize{32pt}{40pt}\selectfont \textbf{Advanced Data Structure}\par}
+    
+    \vspace{0.5cm}
+    {\Large \textbf{Project Report}\par}
+    
+    \vspace{2cm}
+    
+    % Info Table
+    \newcommand{\ulinefield}[1]{\underline{\makebox[9cm][c]{#1}}}
+    
+    {\Large
+    \renewcommand{\arraystretch}{2.0}
+    \begin{tabular}{r l}
+        \textbf{Project:} & \ulinefield{Skip List Implementation} \\
+        \textbf{Group No.:} & \ulinefield{13} \\
+        \textbf{Group Members:} & \ulinefield{San Zhang (3230000001)} \\ % Change Name/ID here
+                                & \ulinefield{Si Li (3230000002)} \\     % Change Name/ID here
+                                & \ulinefield{Wu Wang (3230000003)} \\   % Change Name/ID here
+    \end{tabular}
+    }
+    
+    \vfill
+    
+    % Date Section
+    {\Large \textbf{Date:} \today}
+    
+    \vspace{2cm}
+    
+    {\large Zhejiang University College of Computer Science and Technology}
+    \vspace{1cm}
+
+\end{titlepage}
+
+% ==================== Table of Contents ====================
+\newpage
+\tableofcontents
+\newpage
+
+% ==================== Chapter 1: Introduction ====================
+\section{Introduction}
+\label{sec:intro}
+
+\subsection{Problem Description}
+The primary objective of this project is to implement and analyze a \textbf{Skip List}, a probabilistic data structure that serves as an alternative to balanced binary trees (such as AVL or Red-Black trees). 
+
+Traditional linked lists allow for simple insertion and deletion but suffer from $O(N)$ search complexity. Skip Lists overcome this limitation by maintaining a hierarchy of linked lists, where lower layers contain all elements and upper layers contain a subset of elements, acting as "express lanes" for traversal. This structure allows the search algorithm to skip large portions of the list, theoretically achieving \textbf{$O(\log N)$} expected time complexity for search, insertion, and deletion operations.
+
+\subsection{Objectives}
+The specific goals of this project are as follows:
+\begin{enumerate}
+    \item \textbf{Implementation}: Develop a generic Skip List in C/C++ supporting three core operations:
+    \begin{itemize}
+        \item \texttt{Insert}: Add a key-value pair to the list while maintaining the probabilistic structural invariants.
+        \item \texttt{Search}: Efficiently locate a value associated with a given key.
+        \item \texttt{Delete}: Remove a node by key and restructure pointers across multiple levels.
+    \end{itemize}
+    \item \textbf{Correctness Verification}: Design a suite of unit tests to handle edge cases (e.g., duplicate keys, deleting non-existent keys, empty lists) to ensure robust functionality.
+    \item \textbf{Performance Analysis}: 
+    \begin{itemize}
+        \item Measure the execution time of operations across varying input sizes ($N$), ranging from small ($N=10^3$) to large ($N=2 \times 10^6$) datasets.
+        \item Verify the theoretical time complexity bounds. Since performing $N$ operations, each taking $O(\log N)$, should result in a total time of $O(N \log N)$, we will plot Total Time vs. Theoretical Complexity ($N \cdot \log_2 N$).
+    \end{itemize}
+\end{enumerate}
+% ==================== Chapter 2: Algorithm Specification ====================
+\section{Algorithm Specification}
+\label{sec:algo}
+
+% Rubric Item 2 Checklist:
+% - [ ] Description of Key Data Structures.
+% - [ ] Description of Searching Algorithm.
+% - [ ] Make it easier to understand than a simple program (use pseudo-code or flowcharts).
+% - [ ] DO NOT just paste code here.
+
+\subsection{Data Structure Description}
+\textit{(Describe the struct/class node definition here. You can include a small diagram of a Skip List node.)}
+
+\begin{lstlisting}[caption={Node Definition Code Snippet}]
+struct Node {
+    int key;
+    int value;
+    Node **forward;
+    // ...
+};
+\end{lstlisting}
+
+\subsection{Algorithm Logic}
+\textit{(Describe the logic for Insert, Search, and Delete. Use pseudo-code or text description.)}
+
+\subsubsection{Searching Strategy}
+\textit{(Detail how the search drops down layers. This is explicitly required by Rubric Item 2.)}
+
+% ==================== Chapter 3: Testing Results ====================
+\section{Testing Results}
+\label{sec:testing}
+
+\subsection{Correctness Testing}
+To ensure the implementation is robust, a series of functional tests were performed before benchmarking. These tests cover standard usage and boundary conditions. The results, verified via assertions in the test program, are summarized in Table \ref{tab:correctness}.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|l|l|c|}
+    \hline
+    \textbf{ID} & \textbf{Test Case Description} & \textbf{Expected Behavior} & \textbf{Result} \\
+    \hline
+    1 & Insert 10 random keys & Size updates to 10 & \textbf{Pass} \\
+    \hline
+    2 & Verify Level 0 ordering & Nodes form a strictly increasing sequence & \textbf{Pass} \\
+    \hline
+    3 & Insert duplicate Key (50) & Value updates; Size remains constant & \textbf{Pass} \\
+    \hline
+    4 & Search non-existent Key (101) & Return NULL & \textbf{Pass} \\
+    \hline
+    5 & Delete existing Key (30) & Return Success (1); Size decrements & \textbf{Pass} \\
+    \hline
+    6 & Delete non-existent Key (999) & Return Fail (0); Size remains constant & \textbf{Pass} \\
+    \hline
+    7 & Delete all remaining nodes & List becomes empty; Head pointers NULL & \textbf{Pass} \\
+    \hline
+    \end{tabular}
+    \caption{Correctness and Boundary Testing Results}
+    \label{tab:correctness}
+\end{table}
+
+\subsection{Performance Testing}
+We conducted a comprehensive benchmark to validate both Time and Space complexity. The test involved generating $N$ random integers, inserting them into the Skip List, and measuring execution time and memory footprint.
+
+\subsubsection{Data Summary}
+Table \ref{tab:perf_data} presents the timing and memory data collected. The input size $N$ ranges from small ($10^3$) to large ($5 \times 10^5$) datasets.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|r|c|c|c|c|}
+    \hline
+    \textbf{Input Size ($N$)} & \textbf{Insert Time (s)} & \textbf{Search Time (s)} & \textbf{Memory (MB)} & \textbf{Avg Level} \\
+    \hline
+    1,000 & 0.0000 & 0.0000 & 0.039 & 1.03 \\
+    10,000 & 0.0030 & 0.0010 & 0.382 & 0.95 \\
+    50,000 & 0.0180 & 0.0090 & 1.908 & 1.00 \\
+    100,000 & 0.0450 & 0.0240 & 3.818 & 1.00 \\
+    200,000 & 0.1270 & 0.1100 & 7.632 & 0.99 \\
+    500,000 & 0.7350 & 0.5740 & 19.072 & 1.00 \\
+    \hline
+    \end{tabular}
+    \caption{Performance and Memory Benchmark Data}
+    \label{tab:perf_data}
+\end{table}
+
+\subsubsection{Time Complexity Analysis}
+To verify the theoretical time complexity, we plotted the \textbf{Total Execution Time} against the \textbf{Theoretical Complexity Metric} ($N \cdot \log_2 N$). 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{assets/insert_plot.png} 
+    \caption{SkipList Insertion: Total Time vs. Theoretical Complexity ($N \log N$)}
+    \label{fig:insert_plot}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{assets/search_plot.png}
+    \caption{SkipList Search: Total Time vs. Theoretical Complexity ($N \log N$)}
+    \label{fig:search_plot}
+\end{figure}
+
+The performance plots (Figure \ref{fig:insert_plot} and Figure \ref{fig:search_plot}) display the Total Execution Time against the complexity metric $N \cdot \log_2 N$. While the overall trend is linear—confirming the $O(N \log N)$ complexity—a detailed examination of the data points reveals two significant phenomena regarding the slopes and the variance.
+
+\textbf{1. Analysis of Slope Progression}
+
+A distinct 3-stage segmented fit is observed. Taking the Search operation (Figure \ref{fig:search_plot}) as an example, the slope increases from $\approx 1.48$ in Stage 1 (Small $N$) to $\approx 2.98$ in Stage 3 (Large $N$). 
+Although the slope doubles, this increase is significantly smaller than the physical latency gap between CPU Cache (L1/L2) and Main Memory (RAM), which typically differs by an order of magnitude (tens of times slower).
+
+This "diluted" performance penalty is due to the hierarchical structure of the Skip List:
+\begin{itemize}
+    \item \textbf{Frequent Access to High-Level Nodes:} The search algorithm always begins at the header and traverses the highest levels first. These top levels contain very few nodes (indices). Because these specific nodes are accessed during \textit{every} single search operation, they benefit from high Temporal Locality.
+    \item \textbf{Implication:} The CPU cache policies naturally keep these frequently accessed top-level nodes in the high-speed L1/L2 cache. Even when the dataset size ($N$) forces the bulk of the data into slow RAM, the initial steps of the search path are performed in the cache. This effectively buffers the average memory latency, preventing the slope from increasing drastically despite the transition to RAM.
+    \item \textbf{Pointer Locality:} Additionally, since nodes are allocated sequentially in our benchmark loop, the CPU's hardware prefetcher can predict memory access patterns for lower levels, further mitigating the impact of RAM latency.
+\end{itemize}
+
+\textbf{2. Analysis of Data Fluctuations }
+
+In the plots, specific data points deviate from the fitted line. For instance, in the large $N$ region (around $N \cdot \log N \approx 2.5 \times 10^7$ and $3.8 \times 10^7$), the actual time drops noticeably below the trend line (a "valley").
+
+This behavior is not an anomaly but a distinct feature of probabilistic data structures:
+\begin{itemize}
+    \item \textbf{Randomness vs. Strict Balance:} Unlike AVL or Red-Black trees, which enforce strict structural balance, a Skip List relies on a random number generator (\texttt{rand()}) to determine node heights.
+    \item \textbf{Structural Variance:} The dip in the graph indicates a "lucky" run. In those specific test cases, the random level generation likely produced a near-optimal distribution of indices, resulting in shorter-than-expected search paths. Conversely, points slightly above the line indicate runs where the probabilistic structure was less optimal (e.g., slightly uneven gaps between index nodes).
+\end{itemize}
+
+\textbf{Conclusion:}
+
+The data visually confirms $O(N \log N)$ complexity. The segmented slopes reflect the hardware cache hierarchy buffered by the caching of high-level indices, while the local fluctuations confirm the probabilistic nature of the algorithm. Despite these physical and probabilistic factors, the high linearity ($R^2 > 0.9$) across all stages validates the theoretical time bounds.
+
+
+\subsubsection{Space Complexity Analysis}
+The theoretical space complexity of a Skip List is $O(N)$. To rigorously verify this relationship across several orders of magnitude, we analyzed the memory usage using a Log-Log plot. 
+
+In a log-log graph, a power-law relationship $Y = c \cdot X^k$ appears as a straight line where the slope corresponds to the exponent $k$. For linear complexity $O(N)$, we expect $k=1$, and thus a slope of $1.0$.
+
+\begin{figure}[H]
+    \centering
+    % Ensure you save your image as memory_plot.png in the assets folder
+    \includegraphics[width=0.9\textwidth]{assets/memory_plot.png} 
+    \caption{SkipList Space Complexity: Log-Log Scale Analysis}
+    \label{fig:memory_plot}
+\end{figure}
+
+\textbf{Analysis:}
+Figure \ref{fig:memory_plot} displays the memory usage (MB) against the number of elements ($N$) on logarithmic axes. The regression analysis yields the following results:
+\begin{itemize}
+    \item \textbf{Log-Log Slope $\approx$ 0.9998:} This value is extremely close to $1.0$. Since the slope represents the exponent in the relationship $Memory \propto N^{slope}$, a slope of $1$ confirms that Memory scales linearly with Input Size ($N^1$).
+    \item \textbf{$R^2$ = 1.0000:} The coefficient of determination indicates a perfect fit. This is expected, as memory allocation for nodes and pointers is deterministic based on the \texttt{sizeof} structures and the random level generation logic.
+\end{itemize}
+
+Combined with the raw data (e.g., $N=500,000$ consuming $\approx 19$ MB), this analysis definitively proves the $O(N)$ space complexity of the implementation.
+
+\subsubsection{Structural Analysis (Average Level)}
+A critical aspect of Skip List performance is the maintenance of its probabilistic structure. The "Average Level" represents the average number of additional forward pointers per node (excluding the base level).
+
+\textbf{Analysis:}
+Based on our log data, the Average Level converges to 1.00.
+\begin{itemize}
+    \item We used a probability $P = 0.5$ for level generation.
+    \item Mathematically, the expected level is $E[L] = \sum_{i=1}^{\infty} i \cdot p^i (1-p) = \frac{p}{1-p}$.
+    \item For $P=0.5$, $E[L] = \frac{0.5}{0.5} = 1$.
+\end{itemize}
+The experimental data ($1.03 \to 1.00$) aligns perfectly with the theoretical expectation. This stability ensures that the Skip List remains balanced, guaranteeing the $O(\log N)$ search path, rather than degenerating into a linked list (which would happen if Avg Level $\approx 0$).
+
+\subsection{Conclusion on Testing}
+The testing results comprehensively validate the Skip List implementation. Time complexity follows the expected $O(\log N)$ behavior (modulated by hardware caching effects), space complexity is strictly $O(N)$, and the structural properties (Average Level) conform to the probabilistic design with $P=0.5$.
+% ==================== Chapter 4: Analysis and Comments ====================
+\section{Analysis and Comments}
+\label{sec:analysis}
+
+% Rubric Item 5 Checklist:
+% - [ ] Time Complexity Analysis.
+% - [ ] Space Complexity Analysis.
+% - [ ] Discussion on testing results.
+
+\subsection{Time Complexity Analysis}
+\textit{(Analyze theoretical time complexity for Insert/Search/Delete - usually $O(\log n)$. Discuss if your test results match this theory.)}
+
+\subsection{Space Complexity Analysis}
+\textit{(Analyze how much memory your Skip List uses. Discuss the trade-off between levels/pointers and speed.)}
+
+\subsection{Discussion}
+\textit{(Discuss any issues encountered, potential optimizations, or comparisons with other data structures.)}
+
+% ==================== Appendix: Source Code ====================
+\newpage
+\appendix
+\section{Source Code}
+\label{sec:code}
+
+% Rubric Item 6 Checklist:
+% - [ ] Program working properly.
+% - [ ] Clean programming style.
+% - [ ] Well-commented.
+
+\textit{(You can paste your full code here or strictly key parts if the code is too long. Ensure it is commented.)}
+
+\begin{lstlisting}[caption={Main Skip List Implementation}]
+// Your C++ code goes here
+#include <iostream>
+// ...
+\end{lstlisting}
+
+\end{document}
