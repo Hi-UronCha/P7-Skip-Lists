@@ -1,17 +1,24 @@
 \documentclass[12pt, a4paper]{article}
 
 % ==================== Packages ====================
+\usepackage{array}
 \usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage{setspace}
-\usepackage{array}
 \usepackage{titlesec}
-\usepackage{hyperref}   % For clickable TOC and links
-\usepackage{listings}   % For code highlighting
-\usepackage{xcolor}     % For colors
-\usepackage{float}      % For table/image positioning
-\usepackage{amsmath}    % For math formulas
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz} % Essential for Member C's diagrams
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usetikzlibrary{shapes.geometric, arrows, positioning, calc}
 
 % ==================== Page Layout ====================
 \geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
@@ -83,9 +90,9 @@
     \begin{tabular}{r l}
         \textbf{Project:} & \ulinefield{Skip List Implementation} \\
         \textbf{Group No.:} & \ulinefield{13} \\
-        \textbf{Group Members:} & \ulinefield{San Zhang (3230000001)} \\ % Change Name/ID here
-                                & \ulinefield{Si Li (3230000002)} \\     % Change Name/ID here
-                                & \ulinefield{Wu Wang (3230000003)} \\   % Change Name/ID here
+        \textbf{Group Members:} & \ulinefield{Zhao Menglei} \\ % Change Name/ID here
+                                & \ulinefield{Pu Yuancan} \\     % Change Name/ID here
+                                & \ulinefield{Zhou Haowen} \\   % Change Name/ID here
     \end{tabular}
     }
     
@@ -108,60 +115,151 @@
 
 % ==================== Chapter 1: Introduction ====================
 \section{Introduction}
-\label{sec:intro}
 
-\subsection{Problem Description}
-The primary objective of this project is to implement and analyze a \textbf{Skip List}, a probabilistic data structure that serves as an alternative to balanced binary trees (such as AVL or Red-Black trees). 
+\subsection{Background and Motivation}
+In the domain of data structures, the dictionary problem—storing a set of keys and performing \texttt{Insert}, \texttt{Delete}, and \texttt{Search} operations—is fundamental. Traditional approaches include:
+\begin{itemize}
+    \item \textbf{Sorted Arrays:} Support $O(\log N)$ search via binary search but require $O(N)$ for insertion and deletion.
+    \item \textbf{Linked Lists:} Support $O(1)$ insertion (if position is known) but suffer from $O(N)$ search time.
+    \item \textbf{Balanced Binary Search Trees (BSTs):} Structures like AVL trees or Red-Black trees offer $O(\log N)$ for all operations but involve complex rotation logic to maintain balance.
+\end{itemize}
 
-Traditional linked lists allow for simple insertion and deletion but suffer from $O(N)$ search complexity. Skip Lists overcome this limitation by maintaining a hierarchy of linked lists, where lower layers contain all elements and upper layers contain a subset of elements, acting as "express lanes" for traversal. This structure allows the search algorithm to skip large portions of the list, theoretically achieving \textbf{$O(\log N)$} expected time complexity for search, insertion, and deletion operations.
+The \textbf{Skip List}, introduced by William Pugh in 1990, offers a compelling alternative. It is a probabilistic data structure that extends a linked list by adding multiple layers of "express lanes". By maintaining a hierarchy of sorted lists, Skip Lists achieve the same asymptotic expected time complexity as balanced trees—$O(\log N)$—but with a simpler implementation that does not require global rebalancing operations.
 
-\subsection{Objectives}
-The specific goals of this project are as follows:
+\subsection{Project Objectives}
+The primary goal of this project is to implement and analyze a Skip List. Specifically, we aim to:
 \begin{enumerate}
-    \item \textbf{Implementation}: Develop a generic Skip List in C/C++ supporting three core operations:
-    \begin{itemize}
-        \item \texttt{Insert}: Add a key-value pair to the list while maintaining the probabilistic structural invariants.
-        \item \texttt{Search}: Efficiently locate a value associated with a given key.
-        \item \texttt{Delete}: Remove a node by key and restructure pointers across multiple levels.
-    \end{itemize}
-    \item \textbf{Correctness Verification}: Design a suite of unit tests to handle edge cases (e.g., duplicate keys, deleting non-existent keys, empty lists) to ensure robust functionality.
-    \item \textbf{Performance Analysis}: 
-    \begin{itemize}
-        \item Measure the execution time of operations across varying input sizes ($N$), ranging from small ($N=10^3$) to large ($N=2 \times 10^6$) datasets.
-        \item Verify the theoretical time complexity bounds. Since performing $N$ operations, each taking $O(\log N)$, should result in a total time of $O(N \log N)$, we will plot Total Time vs. Theoretical Complexity ($N \cdot \log_2 N$).
-    \end{itemize}
+    \item \textbf{Implement Core Operations:} Develop a robust Skip List supporting \texttt{Search}, \texttt{Insert}, and \texttt{Delete} in C.
+    \item \textbf{Theoretical Verification:} Provide a formal proof demonstrating that the expected time complexity for these operations is $O(\log N)$.
+    \item \textbf{Performance Analysis:} Validate the theoretical bounds through empirical testing on datasets of varying sizes, analyzing the relationship between run times and input size ($N$).
 \end{enumerate}
-% ==================== Chapter 2: Algorithm Specification ====================
-\section{Algorithm Specification}
-\label{sec:algo}
 
-% Rubric Item 2 Checklist:
-% - [ ] Description of Key Data Structures.
-% - [ ] Description of Searching Algorithm.
-% - [ ] Make it easier to understand than a simple program (use pseudo-code or flowcharts).
-% - [ ] DO NOT just paste code here.
+% ==================== Chapter 2: System Design and Algorithms ====================
+\section{System Design and Algorithms}
 
-\subsection{Data Structure Description}
-\textit{(Describe the struct/class node definition here. You can include a small diagram of a Skip List node.)}
+\subsection{Data Structure Selection}
 
-\begin{lstlisting}[caption={Node Definition Code Snippet}]
-struct Node {
-    int key;
-    int value;
-    Node **forward;
-    // ...
-};
+\subsubsection{Data Structure Details}
+Based on the project requirements, we designed a probabilistic data structure known as the \textbf{Skip List}. The core component is the \texttt{Node} structure, which differs from traditional linked lists by maintaining a dynamic array of forward pointers.
+
+The logical representation of our data structure is defined as follows:
+
+\begin{itemize}
+    \item \textbf{Node Structure}: Each node contains a \texttt{Key} (integer), \texttt{Value} (ElementType), and a pointer array \texttt{forward}. The size of \texttt{forward} is determined by the node's level, ranging from 1 to \texttt{MAX\_LEVEL}.
+    \item \textbf{SkipList Structure}: A wrapper structure holding the \texttt{header} node, the current maximum \texttt{level} in the list, and the total \texttt{size}.
+    \item \textbf{Sentinel Header}: To simplify boundary conditions, the list is initialized with a dummy \texttt{header} node containing the minimum possible integer value (\texttt{INT\_MIN}). This ensures that all valid keys are strictly greater than the header.
+\end{itemize}
+
+The C definition used in our implementation is:
+\begin{lstlisting}[language=C, basicstyle=\ttfamily\footnotesize, frame=single]
+typedef struct Node {
+    KeyType key;
+    ElementType value;
+    int level;
+    struct Node **forward; // Dynamic array
+} Node;
+
+typedef struct SkipList {
+    Node *header;
+    int level;
+    int size;
+} SkipList;
 \end{lstlisting}
 
-\subsection{Algorithm Logic}
-\textit{(Describe the logic for Insert, Search, and Delete. Use pseudo-code or text description.)}
+\subsubsection{Rationale for Data Structure Selection}
+The selection of the Skip List over balanced Binary Search Trees (BSTs) or standard Linked Lists is justified by the following factors:
+\begin{enumerate}
+    \item \textbf{Efficiency}: While standard linked lists have $O(N)$ search time, Skip Lists provide expected $O(\log N)$ time for Search, Insert, and Delete operations.
+    \item \textbf{Implementation Simplicity}: Unlike AVL or Red-Black trees, which require complex rotation operations to maintain balance, Skip Lists rely on a randomized level generation strategy (\texttt{randomLevel}). This makes the code easier to implement and debug.
+    \item \textbf{Space-Time Tradeoff}: By consuming $O(N)$ additional space for forward pointers, we achieve significant speedups, which aligns with the project's performance goals.
+\end{enumerate}
 
-\subsubsection{Searching Strategy}
-\textit{(Detail how the search drops down layers. This is explicitly required by Rubric Item 2.)}
+\subsection{Algorithm Design (Probabilistic Strategy)}
+
+\subsubsection{Randomized Level Generation}
+The core mechanism ensuring the logarithmic height of the Skip List is the probabilistic promotion of nodes. We implement a \texttt{randomLevel()} function that works as follows:
+\begin{itemize}
+    \item Each new node starts at level 1.
+    \item With a fixed probability $P$ (typically $0.5$ or $0.25$), the node is promoted to the next level.
+    \item This process repeats until the coin flip fails or the \texttt{MAX\_LEVEL} is reached.
+\end{itemize}
+This strategy ensures that the number of nodes at level $h$ is approximately $N \cdot P^h$, forming a pyramid-like structure that facilitates fast traversal.
+
+\subsubsection{Algorithm Implementation Details}
+\begin{itemize}
+    \item \textbf{Search}: The search begins at the \texttt{header} at the current list \texttt{level}. It traverses right as long as the next node's key is smaller than the target. If the key is larger, it drops down one level.
+    \item \textbf{Insert}: 
+    1. Perform a search to locate the position. 
+    2. Maintain an \texttt{update[]} array to record the predecessor nodes at each level.
+    3. Generate a random level for the new node. 
+    4. Splice the new node into the list by adjusting pointers in the \texttt{update[]} array.
+    \item \textbf{Delete}: Similar to insertion, we locate the target node and use the \texttt{update[]} array to redirect the predecessors' pointers to the node's successors, effectively removing it. We then free the memory and adjust the list's max level if the top layers become empty.
+\end{itemize}
+
+\subsection{Pseudocode}
+To formally describe the logic implemented in our C source files, we present the pseudocode for the core \texttt{Search} and \texttt{Insert} algorithms.
+
+\begin{algorithm}[H]
+\caption{Skip List Search and Random Level Generation}
+\label{alg:core_logic}
+\begin{algorithmic}[1]
+\Function{RandomLevel}{}
+    \State $lvl \gets 1$
+    \While{$Random() < P$ \textbf{and} $lvl < MAX\_LEVEL$}
+        \State $lvl \gets lvl + 1$
+    \EndWhile
+    \State \Return $lvl$
+\EndFunction
+
+\Statex
+
+\Function{Search}{list, targetKey}
+    \State $x \gets list.header$
+    \For{$i \gets list.level$ \textbf{down to} $0$}
+        \While{$x.forward[i] \neq NULL$ \textbf{and} $x.forward[i].key < targetKey$}
+            \State $x \gets x.forward[i]$
+        \EndWhile
+    \EndFor
+    \State $x \gets x.forward[0]$
+    \If{$x \neq NULL$ \textbf{and} $x.key == targetKey$}
+        \State \Return $x$ \Comment{Found}
+    \Else
+        \State \Return $NULL$ \Comment{Not Found}
+    \EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Main Program Sketch}
+The main program serves as a test driver to verify the functionality of the Skip List. It operates as a Command Line Interface (CLI), accepting user inputs in a continuous loop.
+
+The logic flow of the \texttt{main} function is described below:
+
+\begin{enumerate}
+    \item \textbf{Initialization}: 
+    \begin{itemize}
+        \item Seed the random number generator using \texttt{srand(time(NULL))}.
+        \item Initialize an empty Skip List using \texttt{createSkipList()}.
+    \end{itemize}
+    
+    \item \textbf{Command Loop}: The program enters a \texttt{while(1)} loop, parsing a character command:
+    \begin{itemize}
+        \item \textbf{'i' (Insert)}: Reads \texttt{key} and \texttt{data}, calls \texttt{insert()}.
+        \item \textbf{'s' (Search)}: Reads \texttt{key}, calls \texttt{search()}, and prints the result.
+        \item \textbf{'d' (Delete)}: Reads \texttt{key}, calls \texttt{deleteNode()}.
+        \item \textbf{'p' (Print)}: traversing the list level by level to visualize the structure.
+        \item \textbf{'q' (Quit)}: Breaks the loop.
+    \end{itemize}
+    
+    \item \textbf{Cleanup}: Calls \texttt{freeSkipList()} to release all allocated memory before exiting.
+\end{enumerate}
+
 
 % ==================== Chapter 3: Testing Results ====================
 \section{Testing Results}
 \label{sec:testing}
+
+\textbf{Note:} \textit{This section focuses solely on empirical verification. The formal theoretical derivations for both time and space complexity are detailed in the subsequent analysis chapter.}
 
 \subsection{Correctness Testing}
 To ensure the implementation is robust, a series of functional tests were performed before benchmarking. These tests cover standard usage and boundary conditions. The results, verified via assertions in the test program, are summarized in Table \ref{tab:correctness}.
@@ -217,7 +315,12 @@ Table \ref{tab:perf_data} presents the timing and memory data collected. The inp
 \end{table}
 
 \subsubsection{Time Complexity Analysis}
-To verify the theoretical time complexity, we plotted the \textbf{Total Execution Time} against the \textbf{Theoretical Complexity Metric} ($N \cdot \log_2 N$). 
+
+\textbf{\color{red}{Note:}}
+
+\textit{The timing data presented in the Test Results reflects the cumulative duration of performing $N$ search or insertion operations. Since a single operation has a time complexity of $O(\log N)$, the total theoretical time for the batch is calculated as $O(N \log N)$. Consequently, the following analysis performs a regression fit to compare the measured execution times against the theoretical $N \log N$ metric.}
+
+We plotted the \textbf{Total Execution Time} against the \textbf{Theoretical Complexity Metric} ($N \cdot \log_2 N$). 
 
 \begin{figure}[H]
     \centering
@@ -299,40 +402,659 @@ The experimental data ($1.03 \to 1.00$) aligns perfectly with the theoretical ex
 \subsection{Conclusion on Testing}
 The testing results comprehensively validate the Skip List implementation. Time complexity follows the expected $O(\log N)$ behavior (modulated by hardware caching effects), space complexity is strictly $O(N)$, and the structural properties (Average Level) conform to the probabilistic design with $P=0.5$.
 % ==================== Chapter 4: Analysis and Comments ====================
-\section{Analysis and Comments}
+\section{Analysis and Complexity}
 \label{sec:analysis}
 
-% Rubric Item 5 Checklist:
-% - [ ] Time Complexity Analysis.
-% - [ ] Space Complexity Analysis.
-% - [ ] Discussion on testing results.
-
-\subsection{Time Complexity Analysis}
-\textit{(Analyze theoretical time complexity for Insert/Search/Delete - usually $O(\log n)$. Discuss if your test results match this theory.)}
+In this chapter, we provide a formal analysis of the space and time complexity of the implemented Skip List. The analysis relies on the probabilistic nature of the structure, specifically the coin-flip probability $p$ used in the \texttt{randomLevel()} function. In our implementation, we set $p = 0.5$.
 
 \subsection{Space Complexity Analysis}
-\textit{(Analyze how much memory your Skip List uses. Discuss the trade-off between levels/pointers and speed.)}
 
-\subsection{Discussion}
-\textit{(Discuss any issues encountered, potential optimizations, or comparisons with other data structures.)}
+The space complexity of a Skip List is determined by the total number of forward pointers allocated across all nodes. 
+
+Let $n$ be the number of elements in the Skip List.
+\begin{itemize}
+    \item \textbf{Level 0:} All $n$ nodes exist at level 0. This requires $n$ pointers.
+    \item \textbf{Level 1:} Each node at level 0 is promoted to level 1 with probability $p$. The expected number of nodes is $n \cdot p$.
+    \item \textbf{Level $i$:} Generally, the expected number of nodes at level $i$ is $n \cdot p^i$.
+\end{itemize}
+
+The total expected number of forward pointers is the sum of the geometric series:
+\begin{equation}
+    \text{Total Pointers} = \sum_{i=0}^{h} n \cdot p^i = n \sum_{i=0}^{h} p^i
+\end{equation}
+As $h \to \infty$, this series converges to:
+\begin{equation}
+    n \cdot \frac{1}{1-p}
+\end{equation}
+
+Substituting our implementation parameter $p = 0.5$:
+\begin{equation}
+    \text{Expected Memory} = n \cdot \frac{1}{1 - 0.5} = 2n
+\end{equation}
+
+\textbf{Conclusion:} The expected space complexity is \textbf{$O(n)$}. Although we allocate extra pointers compared to a singly linked list, the memory usage remains linear with respect to the input size.
+
+\subsection{Time Complexity Analysis}
+
+We analyze the \texttt{Search} operation. Since \texttt{Insert} and \texttt{Delete} fundamentally rely on the search path to locate the position, their complexity bounds are identical to Search.
+
+\subsubsection{Proof of Expected $O(\log n)$ Time}
+To derive the time bound, we use the \textbf{Backwards Analysis} technique. Instead of analyzing the path from the header to the target, we trace the path \textit{backwards} from the target node (at the bottom level) up to the header (at the top level).
+
+At any point in the backwards traversal, we are at a node $x$ on level $i$. We have two possible backward moves:
+\begin{enumerate}
+    \item \textbf{Move Left:} If node $x$ was \textit{not} promoted to level $i+1$, we came from the left.
+    \item \textbf{Move Up:} If node $x$ \textit{was} promoted to level $i+1$, we came from the level above (in the backwards view, we go up).
+\end{enumerate}
+
+Let $C(k)$ be the expected cost (number of steps) to climb $k$ levels.
+\begin{itemize}
+    \item With probability $p$, we move \textbf{Up} one level.
+    \item With probability $1-p$, we move \textbf{Left} (scanning horizontally).
+\end{itemize}
+
+The recurrence relation for the cost is:
+\begin{equation}
+    C(k) = (1-p)(1 + C(k)) + p(1 + C(k-1))
+\end{equation}
+Solving for $C(k)$:
+\begin{equation}
+    C(k) = 1 + (1-p)C(k) + pC(k-1) \implies pC(k) = 1 + pC(k-1) \implies C(k) = \frac{1}{p} + C(k-1)
+\end{equation}
+This implies that at each level, the expected number of horizontal steps is $1/p$. Since the height of the list is logarithmic ($H \approx \log_{1/p} n$), the total expected cost is:
+\begin{equation}
+    T(n) = (\text{Height}) \times (\text{Steps per Level}) = O(\log n) \times \frac{1}{p}
+\end{equation}
+
+For $p=0.5$, the expected horizontal steps per level is 2. Thus, the total time complexity is \textbf{$O(\log n)$}.
+
+\subsubsection{Worst-Case Scenario}
+In the worst-case scenario, the random number generator could theoretically fail to promote any nodes (resulting in a linked list, height 1) or promote nodes unevenly. In such cases, the search time degrades to $O(n)$. However, for a sufficiently large $n$, the probability of such a structure occurring is negligibly small ($1 - (1-p^k)^n$).
+
+\subsection{Comparative Analysis}
+
+Table \ref{tab:comparison} compares the Skip List with other common dictionary data structures.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{|l|c|c|c|}
+    \hline
+    \textbf{Data Structure} & \textbf{Avg. Search} & \textbf{Avg. Insert} & \textbf{Worst Case} \\
+    \hline
+    Sorted Array & $O(\log n)$ & $O(n)$ & $O(n)$ \\
+    \hline
+    Singly Linked List & $O(n)$ & $O(1)^*$ & $O(n)$ \\
+    \hline
+    Binary Search Tree (Unbalanced) & $O(\log n)$ & $O(\log n)$ & $O(n)$ \\
+    \hline
+    AVL / Red-Black Tree & $O(\log n)$ & $O(\log n)$ & $O(\log n)$ \\
+    \hline
+    \textbf{Skip List (Implemented)} & \textbf{$O(\log n)$} & \textbf{$O(\log n)$} & \textbf{$O(n)$} \\
+    \hline
+    \end{tabular}
+    \caption{Complexity Comparison (* assuming position is known)}
+    \label{tab:comparison}
+\end{table}
+
+\subsection{Parameter Discussion}
+The performance of the Skip List is tunable via the probability parameter $P$.
+\begin{itemize}
+    \item \textbf{Current Implementation ($P=0.5$):} Favors speed. The average nodes per level decreases by half. Average pointers per node is 2.
+    \item \textbf{Alternative ($P=0.25$):} Saves memory. Average pointers per node drops to $\approx 1.33$, but the constant factor for search time increases because the tree is "flatter", requiring more horizontal scans.
+\end{itemize}
+Our choice of $P=0.5$ provides an optimal balance for general-purpose applications where memory is not strictly constrained.
+
+
 
 % ==================== Appendix: Source Code ====================
 \newpage
 \appendix
 \section{Source Code}
-\label{sec:code}
 
-% Rubric Item 6 Checklist:
-% - [ ] Program working properly.
-% - [ ] Clean programming style.
-% - [ ] Well-commented.
+This appendix contains the complete C implementation of the Skip List project. The code is modularized into a header file defining structures, a source file containing the core algorithms, and a main driver for interactive testing.
 
-\textit{(You can paste your full code here or strictly key parts if the code is too long. Ensure it is commented.)}
+% -------------------- Style Definition (Matches your screenshot) --------------------
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.94} % Very light gray background
 
-\begin{lstlisting}[caption={Main Skip List Implementation}]
-// Your C++ code goes here
-#include <iostream>
-// ...
+\lstdefinestyle{appendixStyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=t,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=4,
+    frame=single,                    % Adds a frame around the code
+    rulecolor=\color{gray},
+    language=C
+}
+\lstset{style=appendixStyle}
+
+% -------------------- A.1 Header File --------------------
+\subsection{Header File: skiplist.h}
+Defines the unified data structures, constants, and function prototypes used across modules.
+
+\begin{lstlisting}[caption={skiplist.h: Data Structures and Definitions}]
+#ifndef SKIPLIST_H
+#define SKIPLIST_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <limits.h>
+
+#define MAX_LEVEL 16    // Maximum level for the Skip List
+#define P 0.5           // Probability factor for level generation
+
+// Data Payload Wrapper
+typedef struct {
+    int data; 
+} ElementType;
+
+typedef int KeyType;
+
+// Node Structure
+// Levels increase from 0 (bottom) to level (top)
+typedef struct Node {
+    KeyType key;            // Key for sorting
+    ElementType value;      // Data stored in the node
+    int level;              // Current level of this node
+    struct Node **forward;  // Dynamic array of forward pointers
+} Node;
+
+// SkipList Wrapper
+typedef struct SkipList {
+    Node *header;           // Sentinel header node
+    int level;              // Current maximum level in the list
+    int size;               // Total number of elements
+} SkipList;
+
+// Function Prototypes
+SkipList* createSkipList();
+void freeSkipList(SkipList *list);
+int insert(SkipList *list, KeyType key, ElementType value);
+int deleteNode(SkipList *list, KeyType key);
+Node* search(SkipList *list, KeyType key);
+void printSkipList(SkipList *list);
+
+#endif
+\end{lstlisting}
+
+% -------------------- A.2 Implementation File --------------------
+\subsection{Source File: skiplist.c}
+Implements the core Skip List algorithms, including probabilistic level generation, insertion, deletion, and searching.
+
+\begin{lstlisting}[caption={skiplist.c: Core Implementation}]
+#include "skiplist.h"
+
+// Helper: Create a new node with dynamic level allocation
+Node* createNode(KeyType key, ElementType value, int level) {
+    Node *node = (Node *)malloc(sizeof(Node));
+    if (!node) return NULL; // Allocation check
+    
+    node->key = key;
+    node->value = value;
+    node->level = level;
+    // Allocate pointer array for levels 0 to level
+    node->forward = (Node **)calloc(level + 1, sizeof(Node*));
+    return node;
+}
+
+// Initialize Skip List
+SkipList* createSkipList() {
+    SkipList *list = (SkipList *)malloc(sizeof(SkipList));
+    list->level = 0;
+    list->size = 0;
+    
+    // Create dummy header with smallest possible key
+    ElementType dummy = {0}; 
+    list->header = createNode(INT_MIN, dummy, MAX_LEVEL);
+    return list;
+}
+
+// Generate a random level for a new node
+// Returns level L with probability P^L
+int randomLevel() {
+    int lvl = 0;
+    // Keep incrementing level based on probability P
+    while ((float)rand() / RAND_MAX < P && lvl < MAX_LEVEL - 1) {
+        lvl++;
+    }
+    return lvl;
+}
+
+// Free all memory associated with the list
+void freeSkipList(SkipList *list) {
+    Node *current = list->header;
+    while (current != NULL) { 
+        Node *next = current->forward[0];
+        free(current->forward);
+        free(current);
+        current = next;
+    }
+    free(list);
+}
+
+// Search for a key
+Node* search(SkipList *list, KeyType key) {
+    Node *x = list->header;
+    // Start from top level and move down
+    for (int i = list->level; i >= 0; i--) {
+        while (x->forward[i] != NULL && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+    }
+    // Check the next node at level 0
+    x = x->forward[0];
+    if (x != NULL && x->key == key) return x;
+    return NULL;
+}
+
+// Insert a key-value pair
+int insert(SkipList *list, KeyType key, ElementType value) {
+    Node *update[MAX_LEVEL]; // Tracks predecessor nodes
+    Node *x = list->header;
+    
+    // Locate insertion point
+    for (int i = list->level; i >= 0; i--) {
+        while (x->forward[i] != NULL && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+        update[i] = x;
+    }
+    
+    x = x->forward[0];
+    // If key exists, update value
+    if (x != NULL && x->key == key) {
+        x->value = value; 
+        return 0; 
+    }
+    
+    // Create new node with random level
+    int newLevel = randomLevel();
+    if (newLevel > list->level) {
+        for (int i = list->level + 1; i <= newLevel; i++) {
+            update[i] = list->header;
+        }
+        list->level = newLevel;
+    }
+    
+    Node *newNode = createNode(key, value, newLevel);
+    // Link pointers
+    for (int i = 0; i <= newLevel; i++) {
+        newNode->forward[i] = update[i]->forward[i];
+        update[i]->forward[i] = newNode;
+    }
+    list->size++;
+    return 1;
+}
+
+// Delete a node by key
+int deleteNode(SkipList *list, KeyType key) {
+    Node *update[MAX_LEVEL];
+    Node *x = list->header;
+    
+    // Locate node and predecessors
+    for (int i = list->level; i >= 0; i--) {
+        while (x->forward[i] != NULL && x->forward[i]->key < key) {
+            x = x->forward[i];
+        }
+        update[i] = x;
+    }
+    
+    x = x->forward[0];
+    // If found, remove it
+    if (x != NULL && x->key == key) {
+        for (int i = 0; i <= list->level; i++) {
+            if (update[i]->forward[i] != x) break;
+            update[i]->forward[i] = x->forward[i];
+        }
+        
+        free(x->forward);
+        free(x);
+        
+        // Lower list level if top layers are empty
+        while (list->level > 0 && list->header->forward[list->level] == NULL) {
+            list->level--;
+        }
+        list->size--;
+        return 1;
+    }
+    return 0; // Not found
+}
+
+// Helper: Print list structure for debugging
+void printSkipList(SkipList *list) {
+    for (int i = list->level; i >= 0; i--) {
+        Node *x = list->header->forward[i];
+        printf("Level %d: ", i);
+        while (x != NULL) {
+            printf("[%d] -> ", x->key);
+            x = x->forward[i];
+        }
+        printf("NULL\n");
+    }
+}
+\end{lstlisting}
+
+% -------------------- A.3 Main Driver --------------------
+\subsection{Main Driver: main.c}
+A Command Line Interface (CLI) to interactively test the Skip List functionalities (Insert, Search, Delete, Print).
+
+\begin{lstlisting}[caption={main.c: Test Driver}]
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "skiplist.h"
+
+int main() {
+    srand((unsigned)time(NULL)); // Initialize random seed
+    
+    SkipList *list = createSkipList();
+    char command[10];
+    int key, data_in;
+    
+    printf("=== Skip List Test Driver ===\n");
+    printf("Commands: \n");
+    printf("  i <key> <data>  : Insert (e.g., i 10 999)\n");
+    printf("  s <key>         : Search\n");
+    printf("  d <key>         : Delete\n");
+    printf("  p               : Print Structure\n");
+    printf("  q               : Quit\n");
+    printf("=============================\n");
+
+    while (1) {
+        printf("\nCMD> ");
+        scanf("%s", command);
+
+        if (strcmp(command, "q") == 0) {
+            break;
+        } 
+        else if (strcmp(command, "i") == 0) {
+            scanf("%d %d", &key, &data_in);
+            ElementType val = {data_in};
+            insert(list, key, val);
+            printf("Inserted key: %d, data: %d\n", key, data_in);
+        } 
+        else if (strcmp(command, "d") == 0) {
+            scanf("%d", &key);
+            if (deleteNode(list, key))
+                printf("Deleted key: %d\n", key);
+            else
+                printf("Key %d not found.\n", key);
+        } 
+        else if (strcmp(command, "s") == 0) {
+            scanf("%d", &key);
+            Node *result = search(list, key);
+            if (result)
+                printf("Found! Key: %d, Data: %d\n", 
+                       result->key, result->value.data);
+            else
+                printf("Key %d not found.\n", key);
+        }
+        else if (strcmp(command, "p") == 0) {
+            printSkipList(list);
+        }
+    }
+
+    freeSkipList(list);
+    return 0;
+}
+\end{lstlisting}
+
+\subsection{Test Driver: test.c}
+a test driver to verify the correctness and boundary of the Skip List implementation
+
+\begin{lstlisting}[caption={test.c: Test Driver}]
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <assert.h>
+#include <windows.h>
+#include "skiplist.h"
+
+// Macro definition for test scale
+#define TEST_CORRECTNESS_SIZE 100
+#define NUM_TEST_SCALES 9
+
+// --- Helper Functions ---
+
+// Get current time (seconds), used for calculating elapsed time
+double get_time() {
+    return (double)clock() / CLOCKS_PER_SEC;
+}
+
+// Estimate memory usage of the SkipList (Bytes)
+long long estimate_memory(SkipList *list) {
+    long long total_bytes = sizeof(SkipList); // The SkipList structure itself
+    Node *curr = list->header;
+    while (curr != NULL) {
+        // Node structure size
+        total_bytes += sizeof(Node);
+        // Size of the flexible array/pointer array 'forward': (level + 1) * pointer size
+        total_bytes += (curr->level + 1) * sizeof(Node*);
+        curr = curr->forward[0];
+    }
+    return total_bytes;
+}
+
+// --- Part 1: Correctness Testing (Unit Test) ---
+void test_correctness() {
+    printf("========== 1. Start Correctness and Boundary Testing ==========\n");
+    SkipList *list = createSkipList();
+
+    // 1. Typical case: Normal insertion
+    printf("[Test] Inserting 10 random nodes...\n");
+    int keys[] = {10, 50, 30, 20, 40, 90, 60, 80, 70, 100};
+    for (int i = 0; i < 10; i++) {
+        ElementType val = {keys[i] * 10};
+        insert(list, keys[i], val);
+    }
+    assert(list->size == 10);
+    printf("   -> Insert size check passed.\n");
+
+    // 2. Order check: Level 0 should be an ordered linked list
+    printf("[Test] Checking if Level 0 is ordered...\n");
+    Node *curr = list->header->forward[0];
+    while (curr && curr->forward[0]) {
+        assert(curr->key < curr->forward[0]->key);
+        curr = curr->forward[0];
+    }
+    printf("   -> Order check passed.\n");
+
+    // 3. Boundary case: Duplicate insertion (Update)
+    printf("[Test] Duplicate insert key=50, check if value updates...\n");
+    ElementType newVal = {9999};
+    insert(list, 50, newVal); // Update
+    assert(list->size == 10); // Size should not increase
+    Node *res = search(list, 50);
+    assert(res != NULL && res->value.data == 9999);
+    printf("   -> Duplicate insertion update mechanism passed.\n");
+
+    // 4. Extreme case: Search for non-existent Key
+    printf("[Test] Search for non-existent Key (key=101, key=-1)...\n");
+    assert(search(list, 101) == NULL);
+    assert(search(list, -1) == NULL);
+    printf("   -> Search non-existent Key passed.\n");
+
+    // 5. Typical case: Delete existing Key
+    printf("[Test] Delete existing Key (key=30)...\n");
+    int delRes = deleteNode(list, 30);
+    assert(delRes == 1);
+    assert(search(list, 30) == NULL);
+    assert(list->size == 9);
+    printf("   -> Delete existing Key passed.\n");
+
+    // 6. Extreme case: Delete non-existent Key
+    printf("[Test] Delete non-existent Key (key=999)...\n");
+    delRes = deleteNode(list, 999);
+    assert(delRes == 0);
+    assert(list->size == 9);
+    printf("   -> Delete non-existent Key passed.\n");
+
+    // 7. Extreme case: Delete all until empty
+    printf("[Test] Deleting all remaining nodes...\n");
+    for (int i = 0; i < 10; i++) {
+        if (keys[i] == 30) continue; // Already deleted
+        deleteNode(list, keys[i]);
+    }
+    assert(list->size == 0);
+    assert(list->header->forward[0] == NULL);
+    printf("   -> Clear/Empty test passed.\n");
+
+    freeSkipList(list);
+    printf("========== All Correctness Tests Passed ==========\n\n");
+}
+
+// --- Part 2: Space-Time Complexity Testing (Benchmark) ---
+void test_performance() {
+    printf("========== 2. Start Space-Time Complexity Testing ==========\n");
+    // Define test scale N
+    int scales[NUM_TEST_SCALES] = {1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000, 500000};
+
+    // Print table header
+    printf("%-10s | %-15s | %-15s | %-15s | %-15s\n", 
+           "N (Size)", "Insert Time(s)", "Search Time(s)", "Memory(MB)", "Avg Level");
+    printf("--------------------------------------------------------------------------------\n");
+
+    for (int k = 0; k < NUM_TEST_SCALES; k++) {
+        int N = scales[k];
+        SkipList *list = createSkipList();
+
+        // Prepare random data
+        // Use malloc to prevent stack overflow
+        int *data = (int*)malloc(N * sizeof(int));
+        for(int i=0; i<N; i++) {
+            // Ensure large key range to reduce collisions, or intentionally allow collisions to test stability
+            data[i] = rand() | (rand() << 15); 
+        }
+
+        // --- 1. Test Insert Time ---
+        double start = get_time();
+        for (int i = 0; i < N; i++) {
+            ElementType val = {i};
+            insert(list, data[i], val);
+        }
+        double end = get_time();
+        double insert_time = end - start;
+
+        // --- 2. Test Search Time (Search N times) ---
+        // For fairness, search half existing keys, half random keys
+        start = get_time();
+        for (int i = 0; i < N; i++) {
+            int key;
+            if (i % 2 == 0) key = data[i]; // Existing
+            else key = rand();             // Random
+            search(list, key);
+        }
+        end = get_time();
+        double search_time = end - start;
+
+        // --- 3. Calculate Memory Usage ---
+        long long bytes = estimate_memory(list);
+        double mb = (double)bytes / (1024 * 1024);
+
+        // --- 4. Calculate Average Level Height ---
+        // Theoretical value should be ~ 1/(1-p) = 2 (when P=0.5)
+        long long total_levels = 0;
+        Node *curr = list->header->forward[0];
+        while(curr) {
+            total_levels += curr->level;
+            curr = curr->forward[0];
+        }
+        double avg_level = (double)total_levels / N;
+
+        // Output results
+        printf("%-10d | %-15.4f | %-15.4f | %-15.4f | %-15.2f\n", 
+               N, insert_time, search_time, mb, avg_level);
+
+        free(data);
+        freeSkipList(list);
+    }
+    printf("--------------------------------------------------------------------------------\n");
+    printf("Note: Search Time is the total time for N searches.\n");
+}
+
+void run_benchmark() {
+    // Configuration Area
+    int start_n = 50000;      // Start size
+    int end_n   = 2000000;    // End size
+    int step    = 50000;      // Step size
+    int repeat  = 3;          // Run 3 times per N and average to eliminate jitter
+
+    printf("N,InsertTime,SearchTime\n"); // CSV Header
+
+    for (int n = start_n; n <= end_n; n += step) {
+        double total_insert_time = 0;
+        double total_search_time = 0;
+
+        for (int r = 0; r < repeat; r++) {
+            SkipList *list = createSkipList();
+            
+            // Generate random data (pre-generate to exclude rand() impact on timing)
+            int *keys = (int*)malloc(n * sizeof(int));
+            for (int i = 0; i < n; i++) keys[i] = rand() | (rand() << 15);
+
+            // 1. Timing Insertion
+            double t1 = get_time();
+            for (int i = 0; i < n; i++) {
+                ElementType val = {i};
+                insert(list, keys[i], val);
+            }
+            double t2 = get_time();
+            total_insert_time += (t2 - t1);
+
+            // 2. Timing Search
+            t1 = get_time();
+            for (int i = 0; i < n; i++) {
+                // Search for the key just inserted
+                search(list, keys[i]); 
+            }
+            t2 = get_time();
+            total_search_time += (t2 - t1);
+
+            // Cleanup
+            free(keys);
+            freeSkipList(list);
+        }
+
+        // Output average time
+        printf("%d,%.6f,%.6f\n", 
+               n, 
+               total_insert_time / repeat, 
+               total_search_time / repeat);
+        
+        // Flush buffer to prevent data loss if crash occurs
+        fflush(stdout); 
+    }
+}
+
+int main() {
+
+    SetConsoleOutputCP(65001); // Set console output to UTF-8 encoding
+    // Must initialize random seed, otherwise SkipList degrades to linked list
+    srand((unsigned)time(NULL));
+
+    test_correctness();
+    test_performance();
+    run_benchmark();
+
+    return 0;
+}
 \end{lstlisting}
 
 \end{document}
